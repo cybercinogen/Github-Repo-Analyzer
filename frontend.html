@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repo Analyzer</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 32px 24px 48px 24px;
+        }
+        h1 {
+            text-align: center;
+            color: #222;
+            margin-bottom: 32px;
+        }
+        .input-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .input-group input {
+            width: 350px;
+            padding: 12px;
+            border-radius: 6px 0 0 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+        .input-group button {
+            padding: 12px 24px;
+            border: none;
+            background: #007bff;
+            color: #fff;
+            font-size: 1rem;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .input-group button:hover {
+            background: #0056b3;
+        }
+        .card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .contributors-section {
+            margin-bottom: 32px;
+        }
+        .contributors-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .contributors-table th, .contributors-table td {
+            padding: 12px 10px;
+            text-align: left;
+        }
+        .contributors-table th {
+            background: #f1f3f7;
+        }
+        .contributors-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .chart-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .error {
+            color: #b30000;
+            background: #ffeaea;
+            border: 1px solid #ffb3b3;
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        .spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 24px 0;
+        }
+        .lds-dual-ring {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+        }
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 8px;
+            border-radius: 50%;
+            border: 6px solid #007bff;
+            border-color: #007bff transparent #007bff transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+        @keyframes lds-dual-ring {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        body[data-theme="dark"] {
+            background: #181a1b;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .container,
+        body[data-theme="dark"] .card,
+        body[data-theme="dark"] .chart-section {
+            background: #23272b;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] h1,
+        body[data-theme="dark"] h2,
+        body[data-theme="dark"] h3,
+        body[data-theme="dark"] h4,
+        body[data-theme="dark"] h5,
+        body[data-theme="dark"] h6,
+        body[data-theme="dark"] label,
+        body[data-theme="dark"] a,
+        body[data-theme="dark"] .contributors-table th,
+        body[data-theme="dark"] .contributors-table td {
+            color: #f8fafc !important;
+        }
+        body[data-theme="dark"] .contributors-table {
+            background: #181a1b;
+        }
+        body[data-theme="dark"] .contributors-table th {
+            background: #23272b;
+        }
+        body[data-theme="dark"] .contributors-table tr,
+        body[data-theme="dark"] .contributors-table tr:nth-child(even) {
+            background: #181a1b;
+        }
+        body[data-theme="dark"] .contributors-table tr:hover {
+            background: #23272b;
+        }
+        body[data-theme="dark"] .contributors-table td {
+            border-bottom: 1px solid #23272b;
+        }
+        body[data-theme="dark"] .input-group input {
+            background: #23272b;
+            color: #f8fafc;
+            border: 1px solid #444;
+        }
+        body[data-theme="dark"] .input-group button {
+            background: #0056b3;
+        }
+        body[data-theme="dark"] .error {
+            background: #4a2323;
+            color: #ffb3b3;
+            border: 1px solid #b30000;
+        }
+        body[data-theme="dark"] .spinner .lds-dual-ring:after {
+            border-color: #fff transparent #fff transparent;
+        }
+        body[data-theme="dark"] .export-btn {
+            background: #23272b;
+            color: #f8fafc;
+            border: 1px solid #444;
+        }
+        body[data-theme="dark"] .export-btn:hover {
+            background: #30363d;
+        }
+        body[data-theme="dark"] .timeframe-select {
+            background: #23272b;
+            color: #f8fafc;
+            border: 1px solid #444;
+        }
+        /* Export button styles */
+        .export-btn {
+            padding: 6px 18px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        .export-btn:hover {
+            background: #0056b3;
+        }
+        .timeframe-select {
+            margin-left: 12px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #bbb;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 12px 2px; }
+            .input-group input { width: 110px; font-size: 0.9rem; }
+            .input-group button { padding: 10px 10px; font-size: 0.95rem; }
+            .card, .chart-section { padding: 8px 2px; }
+            .contributors-table th, .contributors-table td { padding: 7px 4px; font-size: 0.9rem; }
+            .avatar { width: 32px; height: 32px; }
+            .export-btn { font-size: 0.85rem; padding: 5px 8px; }
+            .timeframe-select { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GitHub Repo Analyzer</h1>
+        <form id="repoForm" autocomplete="off">
+            <div class="input-group">
+                <input type="text" id="repoUrl" placeholder="Enter GitHub repo URL (e.g. https://github.com/pallets/flask)" required />
+                <button type="submit">Analyze</button>
+            </div>
+        </form>
+        <div id="error" class="error" style="display:none;"></div>
+        <div id="spinner" class="spinner" style="display:none;">
+            <div class="lds-dual-ring"></div>
+        </div>
+        <div id="metadata"></div>
+        <div class="contributors-section" id="contributorsSection" style="display:none;">
+            <h2>Contributors</h2>
+            <table class="contributors-table" id="contributorsTable">
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Username</th>
+                        <th>Contributions</th>
+                        <th>Profile</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="chart-section" id="chartSection" style="display:none;">
+            <h2>Weekly Commits (Last Year)</h2>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:10px;gap:10px;align-items:center;">
+                <button id="darkModeToggle" class="export-btn" type="button">Dark Mode</button>
+                <button id="exportPNG" class="export-btn" type="button">Export Chart PNG</button>
+                <label for="timeframeSelect" style="margin-left:10px;font-size:1rem;">Timeframe:</label>
+                <select id="timeframeSelect" class="timeframe-select">
+                    <option value="52">Last Year</option>
+                    <option value="26">Last 6 Months</option>
+                    <option value="12">Last 3 Months</option>
+                    <option value="4">Last Month</option>
+                    <option value="0">All</option>
+                </select>
+            </div>
+            <canvas id="commitChart" height="80"></canvas>
+        </div>
+    </div>
+    <script>
+        const repoForm = document.getElementById('repoForm');
+        const repoUrlInput = document.getElementById('repoUrl');
+        const errorDiv = document.getElementById('error');
+        const metadataDiv = document.getElementById('metadata');
+        const contributorsSection = document.getElementById('contributorsSection');
+        const contributorsTableBody = document.querySelector('#contributorsTable tbody');
+        const chartSection = document.getElementById('chartSection');
+        let commitChart = null;
+        let commitWeeks = [];
+
+        function showError(msg) {
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = msg;
+        }
+        function hideError() {
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+        }
+        function showMetadata(data) {
+            metadataDiv.innerHTML = `
+                <div class="card">
+                    <h2>${data.name}</h2>
+                    <p>${data.description || ''}</p>
+                    <div><b>Stars:</b> ${data.stars} &nbsp; <b>Forks:</b> ${data.forks} &nbsp; <b>Watchers:</b> ${data.watchers}</div>
+                    <div><b>Owner:</b> ${data.owner}</div>
+                    <div><b>Main Programming Language:</b> ${data.language || 'N/A'} &nbsp; <b>Open Issues:</b> ${data.open_issues_count ?? 'N/A'} &nbsp; <b>Open PRs:</b> ${data.open_pulls_count ?? 'N/A'}</div>
+                    <div><a href="${data.html_url}" target="_blank">View on GitHub</a></div>
+                </div>
+            `;
+        }
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'flex';
+        }
+        function hideSpinner() {
+            document.getElementById('spinner').style.display = 'none';
+        }
+        function showContributors(contributors, limit = 10) {
+            contributorsSection.style.display = 'block';
+            contributorsTableBody.innerHTML = '';
+            if (!contributors || contributors.length === 0) {
+                contributorsTableBody.innerHTML = '<tr><td colspan="4">No contributors found.</td></tr>';
+                return;
+            }
+            let showAll = false;
+            let toShow = contributors.slice(0, limit);
+            toShow.forEach(c => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><img src="${c.avatar_url}" class="avatar" alt="avatar"></td>
+                    <td>${c.login}</td>
+                    <td>${c.contributions}</td>
+                    <td><a href="${c.html_url}" target="_blank">Profile</a></td>
+                `;
+                contributorsTableBody.appendChild(row);
+            });
+            if (contributors.length > limit) {
+                const expandRow = document.createElement('tr');
+                expandRow.innerHTML = `<td colspan="4" style="text-align:center;">
+                    <button id="showAllBtn" style="padding:6px 20px; border-radius:4px; background:#007bff; color:#fff; border:none; cursor:pointer;">Show All</button>
+                </td>`;
+                contributorsTableBody.appendChild(expandRow);
+                document.getElementById('showAllBtn').onclick = () => {
+                    showContributors(contributors, contributors.length);
+                };
+            } else if (contributors.length > 10) {
+                const collapseRow = document.createElement('tr');
+                collapseRow.innerHTML = `<td colspan="4" style="text-align:center;">
+                    <button id="showLessBtn" style="padding:6px 20px; border-radius:4px; background:#007bff; color:#fff; border:none; cursor:pointer;">Show Top 10</button>
+                </td>`;
+                contributorsTableBody.appendChild(collapseRow);
+                document.getElementById('showLessBtn').onclick = () => {
+                    showContributors(contributors, 10);
+                };
+            }
+        }
+        function showCommitChart(weeks) {
+            commitWeeks = weeks;
+            if (!Array.isArray(weeks) || weeks.length === 0) {
+                chartSection.style.display = 'block';
+                document.getElementById('commitChart').style.display = 'none';
+                // Remove any previous error/info messages
+                const oldMsg = chartSection.querySelector('.commit-msg');
+                if (oldMsg) oldMsg.remove();
+                chartSection.insertAdjacentHTML('beforeend', '<div class="commit-msg" style="padding:20px;color:#b30000;">No commit activity found.</div>');
+                attachDarkModeHandler();
+                return;
+            }
+            document.getElementById('commitChart').style.display = 'block';
+            chartSection.style.display = 'block';
+            // Remove any previous error/info messages
+            const oldMsg = chartSection.querySelector('.commit-msg');
+            if (oldMsg) oldMsg.remove();
+
+            const ctx = document.getElementById('commitChart').getContext('2d');
+            const labels = weeks.map((w, i) => {
+                const date = new Date(w.week * 1000);
+                return date.toLocaleDateString();
+            });
+            const data = weeks.map(w => w.total);
+            if (commitChart) commitChart.destroy();
+            commitChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Commits per Week',
+                        data: data,
+                        fill: true,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.15)',
+                        tension: 0.25,
+                        pointRadius: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    const idx = tooltipItems[0].dataIndex;
+                                    const weekStart = new Date(weeks[idx].week * 1000);
+                                    const weekEnd = new Date(weekStart);
+                                    weekEnd.setDate(weekEnd.getDate() + 6);
+                                    return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: false },
+                            ticks: { autoSkip: true, maxTicksLimit: 12 }
+                        },
+                        y: { title: { display: true, text: 'Commits' }, beginAtZero: true }
+                    }
+                }
+            });
+            attachDarkModeHandler();
+        }
+        function resetUI() {
+            metadataDiv.innerHTML = '';
+            contributorsSection.style.display = 'none';
+            chartSection.style.display = 'none';
+            if (commitChart) commitChart.destroy();
+        }
+        function attachDarkModeHandler() {
+            const darkModeBtn = document.getElementById('darkModeToggle');
+            if (darkModeBtn) {
+                darkModeBtn.onclick = () => {
+                    if (document.body.getAttribute('data-theme') === 'dark') {
+                        document.body.removeAttribute('data-theme');
+                        darkModeBtn.textContent = 'Dark Mode';
+                    } else {
+                        document.body.setAttribute('data-theme', 'dark');
+                        darkModeBtn.textContent = 'Light Mode';
+                    }
+                };
+            }
+        }
+        repoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+            resetUI();
+            showSpinner();
+            const repo_url = repoUrlInput.value.trim();
+            if (!repo_url) {
+                showError('Please enter a GitHub repository URL.');
+                hideSpinner();
+                return;
+            }
+            try {
+                // Fetch metadata
+                const [metaRes, contribRes, commitsRes] = await Promise.all([
+                    fetch('http://127.0.0.1:5000/api/repo-info', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo_url })
+                    }),
+                    fetch('http://127.0.0.1:5000/api/contributors', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo_url })
+                    }),
+                    fetch('http://127.0.0.1:5000/api/commit-activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo_url })
+                    })
+                ]);
+                const metaData = await metaRes.json();
+                const contribData = await contribRes.json();
+                const commitsData = await commitsRes.json();
+                // Error handling
+                if (!metaRes.ok) throw new Error(metaData.error || 'Failed to fetch repo metadata');
+                if (!contribRes.ok) throw new Error(contribData.error || 'Failed to fetch contributors');
+                if (!commitsRes.ok) throw new Error(commitsData.error || 'Failed to fetch commit activity');
+                showMetadata(metaData);
+                showContributors(contribData);
+                showCommitChart(commitsData);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                hideSpinner();
+            }
+        });
+        document.addEventListener('DOMContentLoaded', attachDarkModeHandler);
+
+        // Export PNG
+        document.getElementById('exportPNG').onclick = () => {
+            if (commitChart) {
+                const url = commitChart.toBase64Image();
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'commit_activity_chart.png';
+                link.click();
+            }
+        };
+        // Timeframe selection
+        document.getElementById('timeframeSelect').onchange = function() {
+            if (!Array.isArray(commitWeeks) || commitWeeks.length === 0) return;
+            let n = parseInt(this.value);
+            let dataToShow = (n === 0) ? commitWeeks : commitWeeks.slice(-n);
+            showCommitChart(dataToShow);
+        };
+    </script>
+</body>
+</html>
